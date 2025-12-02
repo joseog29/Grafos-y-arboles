@@ -6,27 +6,28 @@
 class AVLNode:
     def __init__(self, key, value):
         self.key = key        # clave para ordenar (distancia, id_vertice)
-        self.value = value    # normalmente el vértice
-        self.height = 1
+        self.value = value    # valor que guardamos
+        self.height = 1. # altura del nodo
         self.left = None
         self.right = None
 
 
 class AVLTree:
     def __init__(self):
-        self.root = None
+        self.root = None # raíz del árbol, representa el arbol completo
 
     # ---------- utilidades internas ----------
 
     def _height(self, node):
-        return node.height if node else 0
+        return node.height if node else 0 #Devuelve la altura de un nodo de forma segura (si es None, altura 0).
 
     def _update_height(self, node):
         node.height = 1 + max(self._height(node.left),
-                              self._height(node.right))
+                              self._height(node.right)) #Actualiza la altura de un nodo basándose en las alturas de sus hijos.
 
     def _balance_factor(self, node):
-        return self._height(node.left) - self._height(node.right)
+        return self._height(node.left) - self._height(node.right) #Calcula el factor de balance de un nodo (altura izquierda - altura derecha). 
+    #Recuerda que no puede ser altura mayor o menor a 1 en un AVL.
 
     def _rotate_right(self, y):
         x = y.left
