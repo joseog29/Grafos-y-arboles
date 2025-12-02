@@ -1,4 +1,17 @@
 # -------------------------------------------------------
+# TDA: Arista (NodoArista)
+# -------------------------------------------------------
+
+class NodoArista:
+    """Modela una arista saliente con su destino y peso."""
+    def __init__(self, destino_id: str, peso: int):
+        self.destino_id = destino_id # ID del vértice destino
+        self.peso = peso
+        
+    def __repr__(self):
+        return f"A({self.destino_id}, {self.peso})"
+
+# -------------------------------------------------------
 # TDA: Vértice (NodoVertice)
 # -------------------------------------------------------
 
@@ -14,6 +27,7 @@ class NodoVertice:
 
     def __repr__(self):
         return f"V({self.id})"
+
 
 # -------------------------------------------------------
 # TDA: Grafo
