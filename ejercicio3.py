@@ -1,18 +1,4 @@
 # -------------------------------------------------------
-# TDA: Arista (NodoArista)
-# -------------------------------------------------------
-
-class NodoArista:
-    """Modela una arista saliente con su destino y peso."""
-    def __init__(self, destino_id: str, peso: int):
-        self.destino_id = destino_id # ID del vértice destino
-        self.peso = peso
-        
-    def __repr__(self):
-        return f"A({self.destino_id}, {self.peso})"
-
-
-# -------------------------------------------------------
 # TDA: Vértice (NodoVertice)
 # -------------------------------------------------------
 
@@ -28,7 +14,6 @@ class NodoVertice:
 
     def __repr__(self):
         return f"V({self.id})"
-
 
 # -------------------------------------------------------
 # TDA: Grafo
@@ -56,71 +41,143 @@ class Grafo:
             
         vertice_origen.agregar_vecino(destino_id, peso)
 
-### B. TDA: Algoritmo de Dijkstra
+# ======================================================
+# 3. ALGORITMO DIJKSTRA (SIN DICCIONARIOS EN LA LÓGICA)
+# ======================================================
 
-```python
-# -------------------------------------------------------
-# TDA: DijkstraSolver
-# -------------------------------------------------------
+def buscar_vertice(grafo, info):
+    """Función de búsqueda mantenida."""
+    aux = grafo.inicio
+    while aux is not None:
+        if aux.info == info:
+            return aux
+        aux = aux.sig
+    return None
 
-class DijkstraSolver:
-    def __init__(self, grafo: Grafo):
-        self.grafo = grafo
-
-    def ejecutar_dijkstra(self, inicio_id: str):
-        """
-        Implementación de Dijkstra usando búsqueda lineal para simular la Cola de Prioridad.
-        """
-        num_vertices = len(self.grafo.lista_vertices)
+def dijkstra_sin_dict(grafo, origen_id, destino_id):
+    
+    # --- A. PREPARACIÓN E INICIALIZACIÓN ---
+    # Reiniciar todos los nodos (necesario si dijkstra se llama varias veces)
+    aux = grafo.inicio
+    while aux is not None:
+        aux.distancia = float('inf')
+        aux.anterior = None
+        aux.visitado = False
+        aux = aux.sig
+    
+    # Nodo de origen
+    nodo_origen = buscar_vertice(grafo, origen_id)
+    if nodo_origen is None:
+        return [], float('inf')
         
-        # Inicialización de distancias y estados (usando listas)
-        distancias = [float('inf')] * num_vertices
-        visitados = [False] * num_vertices
-        
-        # Obtener el índice de inicio
-        inicio_idx = self.grafo._mapeo_id.get(inicio_id)
-        if inicio_idx is None:
-            return "Error: Vértice de inicio no encontrado."
+    nodo_origen.distancia = 0
 
-        distancias[inicio_idx] = 0
+    # --- B. BUCLE PRINCIPAL (Vuelve al inicio del grafo en cada iteración) ---
+    for _ in range(grafo.tamano):
         
-        # Bucle principal de Dijkstra
-        for _ in range(num_vertices):
+        # 1. SELECCIÓN: Buscar el nodo NO visitado con la distancia más pequeña
+        actual_id = None
+        menor_distancia = float('inf')
+        
+        # Recorremos la lista completa de vértices del grafo
+        aux = grafo.inicio
+        while aux is not None:
+            if not aux.visitado and aux.distancia < menor_distancia:
+                menor_distancia = aux.distancia
+                actual_id = aux.info
+            aux = aux.sig
             
-            # 1. Encontrar el índice del vértice no visitado con la distancia mínima (simulación de CP)
-            min_distancia = float('inf')
-            vertice_actual_idx = -1
+        # Si no encontramos nada, paramos (grafo desconectado o terminado)
+        if actual_id is None:
+            break
             
-            for i in range(num_vertices):
-                # Buscar el vértice no visitado con la distancia más corta
-                if not visitados[i] and distancias[i] < min_distancia:
-                    min_distancia = distancias[i]
-                    vertice_actual_idx = i
+        # 2. OBTENER Y MARCAR
+        nodo_actual = buscar_vertice(grafo, actual_id)
+        if nodo_actual is None: continue 
+        
+        nodo_actual.visitado = True # Marcar como visitado
+
+        # 3. RELAJACIÓN (Actualizar vecinos)
+        arista = nodo_actual.adyacentes
+        while arista is not None:
             
-            if vertice_actual_idx == -1:
-                break
+            vecino_id = arista.destino
+            costo_viaje = arista.peso
+            
+            # Buscamos el objeto nodo del vecino
+            nodo_vecino = buscar_vertice(grafo, vecino_id)
+            if nodo_vecino is None: 
+                arista = arista.sig
+                continue
+
+            # Relajación
+            nueva_distancia = nodo_actual.distancia + costo_viaje
+            
+            if not nodo_vecino.visitado and nueva_distancia < nodo_vecino.distancia:
                 
-            # Marcar como visitado
-            visitados[vertice_actual_idx] = True
-            vertice_actual = self.grafo.lista_vertices[vertice_actual_idx]
-            
-            # 2. Relajación de aristas
-            for arista in vertice_actual.conexiones:
-                vecino_id = arista.destino_id
-                vecino_idx = self.grafo._mapeo_id.get(vecino_id)
-                peso = arista.peso
-                
-                # Solo relajar si el vecino no ha sido visitado
-                if vecino_idx is not None and not visitados[vecino_idx]:
-                    nueva_distancia = distancias[vertice_actual_idx] + peso
-                    
-                    if nueva_distancia < distancias[vecino_idx]:
-                        distancias[vecino_idx] = nueva_distancia
-                        # Aquí se actualizaría también el predecesor para reconstruir la ruta
-                        
-        # Formato de salida (Reconstruir ID -> Distancia para mostrar el resultado)
-        resultado_distancias = {}
-        for id, idx in self.grafo._mapeo_id.items():
-            resultado_distancias[id] = distancias[idx]
-                        
-        return resultado_distancias
+                # SÍ: Actualizamos la distancia y el predecesor
+                nodo_vecino.distancia = nueva_distancia
+                nodo_vecino.anterior = nodo_actual # Guardamos el puntero al nodo
+
+            arista = arista.sig
+
+    # ==========================================
+    # 4. RECONSTRUCCIÓN DEL CAMINO
+    # ==========================================
+    
+    camino = []
+    nodo_destino = buscar_vertice(grafo, destino_id)
+
+    if nodo_destino is None or nodo_destino.distancia == float('inf'):
+        return [], float('inf')
+
+    # Saltamos hacia atrás usando los punteros 'anterior'
+    curr = nodo_destino
+    while curr is not None:
+        camino.insert(0, curr.info)
+        curr = curr.anterior # Usamos el puntero anterior
+
+    return camino, nodo_destino.distancia
+
+# ==========================================
+# MAIN PARA PROBARLO
+# ==========================================
+if __name__ == "__main__":
+    # 1. Crear el grafo
+    mi_grafo = Grafo()
+    
+    # 2. Insertar vértices y aristas (Usamos las funciones definidas arriba para crear la estructura)
+    # Nota: Tendrías que definir las funciones insertar_vertice e insertar_arista con la misma lógica
+    # que en tu código original, pero usando las nuevas clases.
+    
+    # Ejemplo de inserción usando las funciones originales (asumiendo que están disponibles)
+    def insertar_vertice(grafo, info):
+        nuevo = NodoVertice(info)
+        if grafo.inicio is None:
+            grafo.inicio = nuevo
+        else:
+            aux = grafo.inicio
+            while aux.sig is not None:
+                aux = aux.sig
+            aux.sig = nuevo
+        grafo.tamano += 1
+
+    def insertar_arista(grafo, origen, destino, peso):
+        nodo_origen = buscar_vertice(grafo, origen)
+        if nodo_origen:
+            nueva = NodoArista(destino, peso)
+            nueva.sig = nodo_origen.adyacentes
+            nodo_origen.adyacentes = nueva
+
+    insertar_vertice(mi_grafo, "Madrid")
+    insertar_vertice(mi_grafo, "Paris")
+    insertar_vertice(mi_grafo, "Berlin")
+    insertar_arista(mi_grafo, "Madrid", "Paris", 10)
+    insertar_arista(mi_grafo, "Paris", "Berlin", 5)
+    insertar_arista(mi_grafo, "Madrid", "Berlin", 20)
+    
+    print("Calculando ruta...")
+    ruta, coste = dijkstra_sin_dict(mi_grafo, "Madrid", "Berlin")
+
+    print(f"La ruta más rápida es: {ruta}")
+    print(f"El coste total es: {coste}")
